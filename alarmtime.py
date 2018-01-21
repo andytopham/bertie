@@ -59,10 +59,13 @@ class AlarmTime():
 	def return_holdtime(self):
 		return(self.holdtime)
 		
+	def alarmtime_string(self):
+		return('{:02d}:{:02d}'.format(self.alarmhour, self.alarmminute))
+		
 	def check(self):
 		''' Check whether alarm should go off and return that state.'''
 		self.logger.info("Checking alarm")
-		self.read()					# re-read the file in case it has been updated.
+#		self.read()					# re-read the file in case it has been updated.
 		timenow=list(time.localtime())
 		hour=timenow[3]
 		minute=timenow[4] 

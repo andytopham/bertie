@@ -10,6 +10,10 @@ import logging
 WRITELEDSTATEENABLED = False
 LEDSTATEFILE = '/home/pi/master/log/ledstate.txt'
 LOGFILE = '/home/pi/master/log/gpio.log'
+SW1 = 0
+SW2 = 1
+SW3 = 2
+SW4 = 3
 
 class gpio:
 	'''A class containing ways to handle the RPi gpio. '''
@@ -39,6 +43,7 @@ class gpio:
 			self.output = [23,24,25]
 			self.input = [17, 18, 27, 22] 
 		GPIO.setup(self.output, GPIO.OUT)		# can now set all pins as outputs in one statement by passing the array.
+		GPIO.setup(self.input, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 		self.logger.info('gpio initialised')
 
 	def get_ip_address(self, ifname = 'wlan0'):
@@ -49,6 +54,41 @@ class gpio:
 				struct.pack('256s', ifname[:15]))[20:24])
 		except:
 			return('0')
+
+	def pressedsw(self, value):
+		print 'Pressed:'+str(value)
+		return(0)
+		
+	def setupcallbacks(self):
+		'''Setup gpio lib so that any button press will jump straight to the
+		callback processes listed above. This ensures that we get real responsiveness
+		for button presses. Callbacks are run in a parallel process.'''
+		self.logger.info("Using callbacks")
+		print 'Using callbacks'
+		BOUNCETIME=100
+#		BOUNCETIME=20
+		try:
+			GPIO.add_event_detect(self.input[SW1], GPIO.FALLING, callback=self.pressedsw(0), bouncetime=BOUNCETIME)
+			GPIO.add_event_detect(self.input[SW2], GPIO.FALLING, callback=self.pressedsw(1), bouncetime=BOUNCETIME)
+			GPIO.add_event_detect(self.input[SW3], GPIO.FALLING, callback=self.pressedsw(2), bouncetime=BOUNCETIME)
+			GPIO.add_event_detect(self.input[SW4], GPIO.FALLING, callback=self.pressedsw(3), bouncetime=BOUNCETIME)
+		except:
+			self.logger.error('Failed to add edge detection. Must be run as root.')
+			print 'Failed to add edge detection. Must be run as root.'
+			return(1)
+		return(0)
+	
+	def button1(self):
+		return(GPIO.input(self.input[0]))
+			
+	def button2(self):
+		return(GPIO.input(self.input[1]))
+			
+	def button3(self):
+		return(GPIO.input(self.input[2]))
+			
+	def button4(self):
+		return(GPIO.input(self.input[3]))
 			
 	def rpi_gpio_chk_function(self):
 		# Now updated to use BCM mode
@@ -166,16 +206,12 @@ class gpio:
 		if len(self.input) == 0:
 			print 'No input pins'
 			return(1)
-		for i in range(len(self.input)):
-			GPIO.setup(self.input[i],GPIO.IN, pull_up_down=GPIO.PUD_UP)
-			print self.input[i]," ",
-		print
 		while True:
 			for i in range(len(self.input)):
 				print GPIO.input(self.input[i]),"  ",
 			print
 			time.sleep(1)
-						
+		
 if __name__ == "__main__":
 	'''Called if this file is called standalone. Then just runs a selftest. '''
 	logging.basicConfig(filename = LOGFILE,
@@ -184,7 +220,7 @@ if __name__ == "__main__":
 #	Default level is warning, level=logging.INFO log lots, level=logging.DEBUG log everything
 	logging.warning(datetime.datetime.now().strftime('%d %b %H:%M')+". Running gpio class as a standalone app")
 	print 'Cycling outputs - turning on attached leds.'
-	TEST_OUTPUT = True
+	TEST_OUTPUT = False
 	myGpio = gpio()
 	if TEST_OUTPUT:
 		myGpio.sequenceleds()		# use this as a self test
