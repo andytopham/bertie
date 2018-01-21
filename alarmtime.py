@@ -24,7 +24,8 @@ class AlarmTime():
 		self.alarmminute=20
 		self.wealarmhour=7
 		self.wealarmminute=00
-		self.holdtime = 2000			# seconds
+#		self.holdtime = 2000			# seconds
+		self.holdtime = 20			# seconds
 		self.read()
 		print 'Finished initialising'
 		
@@ -62,6 +63,20 @@ class AlarmTime():
 	def alarmtime_string(self):
 		return('{:02d}:{:02d}'.format(self.alarmhour, self.alarmminute))
 		
+	def increment_alarmhour(self):
+		self.alarmhour += 1
+		if self.alarmhour > 23:
+			self.alarmhour = 0
+		print 'alarm: '+str(self.alarmhour)+':'+str(self.alarmminute)
+		return(0)
+		
+	def increment_alarmminute(self):
+		self.alarmminute += 1
+		if self.alarmminute > 59:
+			self.alarmminute = 0
+		print 'alarm: '+str(self.alarmhour)+':'+str(self.alarmminute)
+		return(0)
+		
 	def check(self):
 		''' Check whether alarm should go off and return that state.'''
 		self.logger.info("Checking alarm")
@@ -70,6 +85,7 @@ class AlarmTime():
 		hour=timenow[3]
 		minute=timenow[4] 
 		day=timenow[6]
+		day = 0 			# this is just for testing!!!!!!
 		if day < 5:				# weekday timings
 			if ((hour == self.alarmhour) and (minute == self.alarmminute)):
 				self.logger.warning("Alarm going off")

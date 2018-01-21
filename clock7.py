@@ -30,7 +30,8 @@ DISPLAY_CONNECTED = True
 LOGFILE = '/home/pi/master/log/clock7.log'
 TIMEOUT = 5		# seconds
 STEPTIME = 30
-HOLDTIME = 2000					# replaced by alarmtime value, which is read from file
+# HOLDTIME = 2000					# replaced by alarmtime value, which is read from file
+HOLDTIME = 20					# replaced by alarmtime value, which is read from file
 
 class AlarmClock():
 	"""Class to manage the alarmclock"""
@@ -48,7 +49,8 @@ class AlarmClock():
 			self.myGpio = gpio.gpio(board)
 
 		self.start_screen_timer()
-
+		self.last_led_time = datetime.datetime.now()
+		
 		addr = '0'
 	#	addr = myGpio.get_ip_address()
 		if addr is not '0':
@@ -62,6 +64,7 @@ class AlarmClock():
 		self.myAlarmTime=alarmtime.AlarmTime()
 		holdtime = self.myAlarmTime.return_holdtime()
 		self.myDisplay = oled1.Oled()
+		self.myDisplay.writerow(1, 'Initialising')
 		self.myDisplay.writerow(2, 'Alarmtime starting')
 		string = "Alarm: %02d:%02d        " % (self.myAlarmTime.alarmhour,self.myAlarmTime.alarmminute)
 		self.myDisplay.writerow(2, string)	
@@ -70,12 +73,31 @@ class AlarmClock():
 		
 	def main_loop(self):
 		print 'Entering main loop'
+		self.counter = 0
+		self.alarm_running = False
 		while True:
 			self.update_display()
-			if(self.myAlarmTime.check()):
-				self.myGpio.sequenceleds(STEPTIME, HOLDTIME)		# this is the alarm
+			if self.alarm_running:
+				self.next_led()
+			else:
+				if(self.myAlarmTime.check()):
+					self.alarm_running = True
+					self.next_led()
+#				self.myGpio.sequenceleds(STEPTIME, HOLDTIME)		# this is the alarm
 			time.sleep(1)									# check every second
 
+	def next_led(self):
+		now = datetime.datetime.now()
+		if now - self.last_led_time > datetime.timedelta(seconds = 20):
+			self.myDisplay.writerow(2, 'Alarm started:'+str(self.counter))
+			self.last_led_time = now
+			self.myGpio.alarm_sequence(self.counter)
+			self.counter += 1
+			if self.counter == 7:
+				self.counter = 0
+			self.alarm_running = False
+		return(0)
+		
 	def update_display(self):
 		self.myDisplay.writerow(1, time.strftime("   %H:%M:%S   "))
 		if self.button_pressed():
@@ -93,16 +115,10 @@ class AlarmClock():
 			self.start_screen_timer()		# start one-shot timer
 			return(True)
 		if self.myGpio.button2() == 0:
-			self.myAlarmTime.alarmhour += 1
-			if self.myAlarmTime.alarmhour > 23:
-				self.myAlarmTime.alarmhour = 0
-			print 'alarmhour:'+str(self.myAlarmTime.alarmhour)
+			self.myAlarmTime.increment_alarmhour()
 			return(True)
 		if self.myGpio.button3() == 0:
-			self.myAlarmTime.alarmminute += 1
-			if self.myAlarmTime.alarmminute > 59:
-				self.myAlarmTime.alarmminute = 0
-			print 'alarmhour:'+str(self.myAlarmTime.alarmminute)
+			self.myAlarmTime.increment_alarmminute()
 			return(True)
 		return(False)
 	

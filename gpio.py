@@ -43,6 +43,7 @@ class gpio:
 			self.output = [23,24,25]
 			self.input = [17, 18, 27, 22] 
 		GPIO.setup(self.output, GPIO.OUT)		# can now set all pins as outputs in one statement by passing the array.
+		GPIO.setup(self.output, GPIO.LOW)
 		GPIO.setup(self.input, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 		self.logger.info('gpio initialised')
 
@@ -74,7 +75,7 @@ class gpio:
 			GPIO.add_event_detect(self.input[SW4], GPIO.FALLING, callback=self.pressedsw(3), bouncetime=BOUNCETIME)
 		except:
 			self.logger.error('Failed to add edge detection. Must be run as root.')
-			print 'Failed to add edge detection. Must be run as root.'
+			print 'my callbacks: Failed to add edge detection.'
 			return(1)
 		return(0)
 	
@@ -149,22 +150,36 @@ class gpio:
 	def sequenceleds(self, delay=0.5, holdtime=0.5):
 		'''The main led alarm sequence. Also, alternative test routine to be used with the clock3 slice of pi.'''
 		self.logger.debug("def gpio sequenceleds")
-		# Set all pins as outputs
-		for i in range(len(self.output)):
-			GPIO.setup(self.output[i], GPIO.OUT)
-			GPIO.output(self.output[i], GPIO.LOW)
-		for i in range(len(self.output)):
+		for i in self.output:
 			time.sleep(delay)
-			print "High:",self.output[i]
-			GPIO.output(self.output[i], GPIO.HIGH)
-			self.writeledstate(i,1)
+			print "High:",i
+			GPIO.output(i, GPIO.HIGH)
+#			self.writeledstate(i,1)		# need to enumerate for this to work
+		print 'Holdtime:', holdtime
 		time.sleep(holdtime)
-		for i in range(len(self.output)):
+		for i in self.output:
 			time.sleep(delay)
-			print "Low:",self.output[i]
-			GPIO.output(self.output[i], GPIO.LOW)
-			self.writeledstate(i,0)
-			
+			print "Low:",i
+			GPIO.output(i, GPIO.LOW)
+#			self.writeledstate(i,0)
+	
+	def alarm_sequence(self, counter):
+		if counter == 0:
+			return(0)
+		if counter == 1:
+			GPIO.output(self.output[0], GPIO.HIGH)
+		if counter == 2:
+			GPIO.output(self.output[1], GPIO.HIGH)
+		if counter == 3:
+			GPIO.output(self.output[2], GPIO.HIGH)
+		if counter == 4:
+			GPIO.output(self.output[2], GPIO.LOW)
+		if counter == 5:
+			GPIO.output(self.output[1], GPIO.LOW)
+		if counter == 6:
+			GPIO.output(self.output[0], GPIO.LOW)
+		return(0)
+		
 	def writeleds(self, write_byte, holdtime = 5):
 		'''Write the last_byte value to the leds.'''
 		self.logger.debug("def gpio writeleds")
