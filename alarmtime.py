@@ -43,7 +43,13 @@ class AlarmTime():
 			self.wealarmminute = int(b)
 		except:
 			self.logger.warning("Failed to open alarmtime file, using defaults.")
-		string = "%02d:%02d" % (self.alarmhour,self.alarmminute)
+		# select which is correct time to return as the next alarm time.
+		timenow=list(time.localtime())
+		day=timenow[6]
+		if day < 5:				# weekday timings		
+			string = "%02d:%02d" % (self.alarmhour,self.alarmminute)
+		else:
+			string = "%02d:%02d we" % (self.wealarmhour,self.wealarmminute)		
 		self.logger.info("Weekday alarm time: %02d:%02d" % (self.alarmhour,self.alarmminute))
 		self.logger.info("Weekend alarm time: %02d:%02d" % (self.wealarmhour,self.wealarmminute))
 		self.logger.info("Hold time: %02d" % (self.holdtime))

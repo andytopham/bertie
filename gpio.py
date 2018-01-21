@@ -1,16 +1,14 @@
 #!/usr/bin/python
 # gpio.py
 # Control leds connected to gpio pins, typically via a slice of pi board.
+# Now controls outputs and inputs.
 
 import RPi.GPIO as GPIO
 import time
 import datetime
-import socket, fcntl, struct
 import logging
-BERTIE_TEST = False
-TEST_OUTPUT = True
 WRITELEDSTATEENABLED = False
-LEDSTATEFILE = './ledstate.txt'
+LEDSTATEFILE = '/home/pi/master/log/ledstate.txt'
 LOGFILE = '/home/pi/master/log/gpio.log'
 
 class gpio:
@@ -26,20 +24,21 @@ class gpio:
 		print 'RPi board revision:',str(rev)
 		self.logger.info('RPi board revision:'+str(rev))
 		self.logger.info('HAT type: '+board)
+		self.input = []
 		if rev == 1:
 			if board == 'slice':
-				self.pins = [17,18,21,22,23,24,25,4]	# wiring pi numbering
+				self.output = [17,18,21,22,23,24,25,4]	# wiring pi numbering
 			else:
-				self.pins = [4,17,21,18,22,23,24,25]
+				self.output = [4,17,21,18,22,23,24,25]
 		else:
 			if board == 'slice':	# This array is the Slice of Pi pins: GP0-7
-				self.pins = [17,18,27,22,23,24,25,4]	# wiring pi numbering
+				self.output = [17,18,27,22,23,24,25,4]	# wiring pi numbering
 			else:
-				self.pins = [4,17,27,18,22,23,24,25]	# rev 2 pinout
+				self.output = [4,17,27,18,22,23,24,25]	# rev 2 pinout
 		if board == 'bertie':
-			self.pins = [23,24,25]
-			self.bertie_inputs = [17, 18, 27, 22] 
-		GPIO.setup(self.pins, GPIO.OUT)		# can now set all pins as outputs in one statement by passing the array.
+			self.output = [23,24,25]
+			self.input = [17, 18, 27, 22] 
+		GPIO.setup(self.output, GPIO.OUT)		# can now set all pins as outputs in one statement by passing the array.
 		self.logger.info('gpio initialised')
 
 	def get_ip_address(self, ifname = 'wlan0'):
@@ -111,37 +110,37 @@ class gpio:
 		'''The main led alarm sequence. Also, alternative test routine to be used with the clock3 slice of pi.'''
 		self.logger.debug("def gpio sequenceleds")
 		# Set all pins as outputs
-		for i in range(len(self.pins)):
-			GPIO.setup(self.pins[i], GPIO.OUT)
-			GPIO.output(self.pins[i], GPIO.LOW)
-		for i in range(len(self.pins)):
+		for i in range(len(self.output)):
+			GPIO.setup(self.output[i], GPIO.OUT)
+			GPIO.output(self.output[i], GPIO.LOW)
+		for i in range(len(self.output)):
 			time.sleep(delay)
-			print "High:",self.pins[i]
-			GPIO.output(self.pins[i], GPIO.HIGH)
+			print "High:",self.output[i]
+			GPIO.output(self.output[i], GPIO.HIGH)
 			self.writeledstate(i,1)
 		time.sleep(holdtime)
-		for i in range(len(self.pins)):
+		for i in range(len(self.output)):
 			time.sleep(delay)
-			print "Low:",self.pins[i]
-			GPIO.output(self.pins[i], GPIO.LOW)
+			print "Low:",self.output[i]
+			GPIO.output(self.output[i], GPIO.LOW)
 			self.writeledstate(i,0)
 			
 	def writeleds(self, write_byte, holdtime = 5):
 		'''Write the last_byte value to the leds.'''
 		self.logger.debug("def gpio writeleds")
 		# Set all pins as outputs
-		for i in range(len(self.pins)):
-			GPIO.setup(self.pins[i], GPIO.OUT)
-			GPIO.output(self.pins[i], GPIO.LOW)
+		for i in range(len(self.output)):
+			GPIO.setup(self.output[i], GPIO.OUT)
+			GPIO.output(self.output[i], GPIO.LOW)
 		if write_byte == '0':
 			self.flash_error()
 		else:
 			mask = 1
 			test_byte = int(write_byte) & 255
-			for i in range(len(self.pins)):
+			for i in range(len(self.output)):
 				if (test_byte & mask):
-					print "Address High:",self.pins[i], 'mask ' , mask
-					GPIO.output(self.pins[i], GPIO.HIGH)
+					print "Address High:",self.output[i], 'mask ' , mask
+					GPIO.output(self.output[i], GPIO.HIGH)
 					self.writeledstate(i,1)
 				mask = mask * 2
 			time.sleep(holdtime)
@@ -150,66 +149,33 @@ class gpio:
 	def off(self):
 		self.logger.info('gpio off')
 		print 'All off'
-		for i in range(len(self.pins)):
-			GPIO.output(self.pins[i], GPIO.LOW)
+		for i in range(len(self.output)):
+			GPIO.output(self.output[i], GPIO.LOW)
 			self.writeledstate(i,0)
 	
 	def flash_error(self):
 		self.logger.info('gpio flash_error')
 		for i in range(10):
-			GPIO.output(self.pins[0], GPIO.HIGH)
+			GPIO.output(self.output[0], GPIO.HIGH)
 			time.sleep(.5)
-			GPIO.output(self.pins[0], GPIO.LOW)
+			GPIO.output(self.output[0], GPIO.LOW)
 			time.sleep(.5)
 			
 	def scan(self):
 		# Continuously read the gpio input pins and print results.
-		for i in range(len(self.pins)):
-			GPIO.setup(self.pins[i],GPIO.IN, pull_up_down=GPIO.PUD_UP)
-			print self.pins[i]," ",
+		if len(self.input) == 0:
+			print 'No input pins'
+			return(1)
+		for i in range(len(self.input)):
+			GPIO.setup(self.input[i],GPIO.IN, pull_up_down=GPIO.PUD_UP)
+			print self.input[i]," ",
 		print
 		while True:
-			for i in range(len(self.pins)):
-				print GPIO.input(self.pins[i]),"  ",
+			for i in range(len(self.input)):
+				print GPIO.input(self.input[i]),"  ",
 			print
 			time.sleep(1)
-			
-	def bertie_test(self, delay = 1, holdtime = 1):
-		for i in self.pins:
-			GPIO.setup(i, GPIO.OUT)
-			GPIO.output(i, GPIO.LOW)
-		for i in self.pins:
-			time.sleep(delay)
-			print "High:",i
-			GPIO.output(i, GPIO.HIGH)
-			self.writeledstate(i,1)
-		time.sleep(holdtime)
-		for i in self.pins:
-			time.sleep(delay)
-			print "Low:",i
-			GPIO.output(i, GPIO.LOW)
-		for i in self.bertie_inputs:
-			GPIO.setup(i,GPIO.IN, pull_up_down=GPIO.PUD_UP)
-			print i," ",
-		print
-		return(0)
-		
-	def bertie_test_inputs(self):
-		while True:
-			n = 0
-			for i in self.bertie_inputs:
-				x = GPIO.input(i)
-				print x, " ",
-				if x == True:
-					GPIO.output(self.pins[n], GPIO.HIGH)
-				else:
-					GPIO.output(self.pins[n], GPIO.LOW)				
-				if n < 2:
-					n = n + 1
-			print
-			time.sleep(1)
-
-	
+						
 if __name__ == "__main__":
 	'''Called if this file is called standalone. Then just runs a selftest. '''
 	logging.basicConfig(filename = LOGFILE,
@@ -218,6 +184,7 @@ if __name__ == "__main__":
 #	Default level is warning, level=logging.INFO log lots, level=logging.DEBUG log everything
 	logging.warning(datetime.datetime.now().strftime('%d %b %H:%M')+". Running gpio class as a standalone app")
 	print 'Cycling outputs - turning on attached leds.'
+	TEST_OUTPUT = True
 	myGpio = gpio()
 	if TEST_OUTPUT:
 		myGpio.sequenceleds()		# use this as a self test
