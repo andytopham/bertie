@@ -29,6 +29,8 @@ else:
 DISPLAY_CONNECTED = True
 LOGFILE = '/home/pi/master/log/clock7.log'
 TIMEOUT = 10		# seconds
+STEPTIME = 30
+HOLDTIME = 2000					# replaced by alarmtime value, which is read from file
 
 class AlarmClock():
 	"""Class to manage the alarmclock"""
@@ -37,13 +39,13 @@ class AlarmClock():
 		print "main:- Clock7.5 - alarm clock code for bertie."
 		print 'Board selected:', board
 		if board == 'slice':
-			myGpio=gpio.gpio(board)
+			self.myGpio=gpio.gpio(board)
 		elif board == 'ledborg':
-			myGpio=gpio.Ledborg()
+			self.myGpio=gpio.Ledborg()
 		elif board == 'blinkt':
-			myGpio = blinktcontrol.Blinktcontrol()
+			self.myGpio = blinktcontrol.Blinktcontrol()
 		elif board == 'bertie':
-			myGpio = gpio.gpio(board)
+			self.myGpio = gpio.gpio(board)
 
 		# start one-shot timer
 		self.last_set = datetime.datetime.now()
@@ -54,38 +56,33 @@ class AlarmClock():
 			last_byte = addr.split('.')[3]
 			print 'IP: ',addr,last_byte
 			logging.info('IP address: '+addr)
-			myGpio.writeleds(last_byte)
+			self.myGpio.writeleds(last_byte)
 		else:
 			logging.info('Zero IP address')
-	#		myGpio.flash_error()
-		myGpio.sequenceleds()
-		myAlarmTime=alarmtime.AlarmTime()
-		myAlarmTime.read()
-		steptime = 30
-		holdtime = 2000					# seconds
-		holdtime = myAlarmTime.return_holdtime()
-		if DISPLAY_CONNECTED == True:
-			print 'setting display'
-			myDisplay = oled1.Oled()
-			myDisplay.writerow(2, 'Alarmtime starting')
-			myAlarmTime.read()
-			string = "Alarm: %02d:%02d        " % (myAlarmTime.alarmhour,myAlarmTime.alarmminute)
-			myDisplay.writerow(2, string)	
+		self.myGpio.sequenceleds()
+		self.myAlarmTime=alarmtime.AlarmTime()
+		holdtime = self.myAlarmTime.return_holdtime()
+		self.myDisplay = oled1.Oled()
+		self.myDisplay.writerow(2, 'Alarmtime starting')
+		string = "Alarm: %02d:%02d        " % (self.myAlarmTime.alarmhour,self.myAlarmTime.alarmminute)
+		self.myDisplay.writerow(2, string)	
+		self.main_loop()
+			
+	def main_loop(self):
 		print 'Entering main loop'
 		while True:
 			t = time.strftime("%H:%M:%S")
-			myDisplay.writerow(1, '   '+t+'       ')
-			if self.screen_timer() == True:
-				t = 'Alarm:'+myAlarmTime.read()+'      '
+			self.myDisplay.writerow(1, '   '+t+'       ')
+			if self.check_screen_timer() == True:
+				t = 'Alarm:'+self.myAlarmTime.read()+'      '
 			else:
 				t = "                     "
-			myDisplay.writerow(2, t)		
-			if(myAlarmTime.check()):
-	#			Parameters below are: delay, holdtime
-				myGpio.sequenceleds(steptime,holdtime)	# this is the alarm
-			time.sleep(1)				# check every minute
+			self.myDisplay.writerow(2, t)		
+			if(self.myAlarmTime.check()):
+				self.myGpio.sequenceleds(STEPTIME, HOLDTIME)		# this is the alarm
+			time.sleep(1)									# check every second
 
-	def screen_timer(self):
+	def check_screen_timer(self):
 		# one shot timer. True if still running.
 		now = datetime.datetime.now()
 		if now - self.last_set > datetime.timedelta(seconds=TIMEOUT):

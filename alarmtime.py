@@ -25,6 +25,7 @@ class AlarmTime():
 		self.wealarmhour=7
 		self.wealarmminute=00
 		self.holdtime = 2000			# seconds
+		self.read()
 		print 'Finished initialising'
 		
 	def read(self):
