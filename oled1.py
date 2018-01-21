@@ -1,5 +1,6 @@
 #!/usr/bin/python
 ''' Module to control the picaxe OLED.
+	This is the non-threaded version.
   Updated to work with both 16x2 and 20x4 versions.
   Requires new picaxe fw that inverts serial polarity, i.e. N2400 -> T2400.
   The oled modules work fine off the RPi 3v3, which avoids the need for level shifting.
