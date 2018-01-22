@@ -19,7 +19,6 @@ class AlarmTime():
 		print 'Running alarmtime'
 		self.logger = logging.getLogger(__name__)
 		self.logger.info("Initialising alarm time")
-		a=0 # just to fix the formatting
 		self.alarmhour=6
 		self.alarmminute=20
 		self.wealarmhour=7
@@ -45,36 +44,45 @@ class AlarmTime():
 			self.wealarmminute = int(b)
 		except:
 			self.logger.warning("Failed to open alarmtime file, using defaults.")
-		# select which is correct time to return as the next alarm time.
-		timenow=list(time.localtime())
-		day=timenow[6]
-		if day < 5:				# weekday timings		
-			string = "%02d:%02d" % (self.alarmhour,self.alarmminute)
-		else:
-			string = "%02d:%02d we" % (self.wealarmhour,self.wealarmminute)		
-		self.logger.info("Weekday alarm time: %02d:%02d" % (self.alarmhour,self.alarmminute))
-		self.logger.info("Weekend alarm time: %02d:%02d" % (self.wealarmhour,self.wealarmminute))
-		self.logger.info("Hold time: %02d" % (self.holdtime))
-		return(string)
-		
+		self.logger.info("Weekday alarm time: "+self.alarmtime_string())
+		self.logger.info("Weekend alarm time: "+self.alarmtime_string_we())
+		self.logger.info("Hold time: {:02d}".format(self.holdtime))
+		return(0)
+
+	def write(self):
+		self.logger.info("Writing alarm time")
+		try:
+			file=open(ALARMTIMEFILE,'w')
+			file.write("{:02d}:{:02d}\n".format(self.alarmhour,self.alarmminute))
+			file.write("{:02d}:{:02d}\n".format(self.wealarmhour,self.wealarmminute))
+			file.write("{:04d}".format(self.holdtime))
+			file.close()
+		except:
+			self.logger.warning("Failed to open alarmtime file for writing.")
+			return(1)
+		return(0)
+				
 	def return_holdtime(self):
 		return(self.holdtime)
 		
 	def alarmtime_string(self):
 		return('{:02d}:{:02d}'.format(self.alarmhour, self.alarmminute))
+
+	def alarmtime_string_we(self):
+		return('{:02d}:{:02d}'.format(self.wealarmhour, self.wealarmminute))
 		
 	def increment_alarmhour(self):
 		self.alarmhour += 1
 		if self.alarmhour > 23:
 			self.alarmhour = 0
-		print 'alarm: '+str(self.alarmhour)+':'+str(self.alarmminute)
+		print 'New alarm time:',self.alarmtime_string()
 		return(0)
 		
 	def increment_alarmminute(self):
 		self.alarmminute += 1
 		if self.alarmminute > 59:
 			self.alarmminute = 0
-		print 'alarm: '+str(self.alarmhour)+':'+str(self.alarmminute)
+		print 'New alarm time:',self.alarmtime_string()
 		return(0)
 		
 	def check(self):

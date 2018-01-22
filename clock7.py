@@ -3,6 +3,7 @@
 	andyt wake up light alarm clock using various hardware.
 	Works with slice of pi (slice == True).
 	Works with ledborg.
+	Works with bertie.
 """
 
 import time
@@ -32,6 +33,8 @@ TIMEOUT = 5		# seconds
 STEPTIME = 10
 # HOLDTIME = 2000					# replaced by alarmtime value, which is read from file
 HOLDTIME = 20					# replaced by alarmtime value, which is read from file
+HOLDLEDPOSITION = 4
+FILEWRITEDELAY = 30
 
 class AlarmClock():
 	"""Class to manage the alarmclock"""
@@ -61,14 +64,13 @@ class AlarmClock():
 		else:
 			logging.info('Zero IP address')
 		self.myGpio.sequenceleds()
-		self.myAlarmTime=alarmtime.AlarmTime()
-		holdtime = self.myAlarmTime.return_holdtime()
+		self.myAlarm=alarmtime.AlarmTime()
+		holdtime = self.myAlarm.return_holdtime()
 		self.myDisplay = oled1.Oled()
 		self.myDisplay.writerow(1, 'Initialising')
 		self.myDisplay.writerow(2, 'Alarmtime starting')
-		string = "Alarm: %02d:%02d        " % (self.myAlarmTime.alarmhour,self.myAlarmTime.alarmminute)
-		self.myDisplay.writerow(2, string)	
-#		self.myGpio.setupcallbacks()
+		self.file_write_needed = False
+#		self.myGpio.setupcallbacks()			# cannot get this to initialise right now?
 		self.main_loop()
 		
 	def main_loop(self):
@@ -77,17 +79,18 @@ class AlarmClock():
 		self.alarm_running = False
 		while True:
 			self.update_display()
+			self.write_alarm_times_file()
 			if self.alarm_running:
 				self.next_led()
 			else:
-				if(self.myAlarmTime.check()):
+				if(self.myAlarm.check()):
 					self.alarm_running = True
 					self.next_led()
 			time.sleep(1)									# check every second
 
 	def next_led(self):
 		now = datetime.datetime.now()
-		if self.counter == 4:			# all on, so need to hold here
+		if self.counter == HOLDLEDPOSITION:			# all on, so need to hold here
 			delta_time = HOLDTIME
 		else:
 			delta_time = STEPTIME
@@ -101,14 +104,23 @@ class AlarmClock():
 				self.alarm_running = False
 		return(0)
 		
+	def write_alarm_times_file(self):
+		if self.file_write_needed:
+			now = datetime.datetime.now()
+			if now - self.last_set > datetime.timedelta(seconds=FILEWRITEDELAY):
+				print "Writing alarm time file"
+				self.myAlarm.write()
+				self.file_write_needed = False
+		return(0)
+		
 	def update_display(self):
 		self.myDisplay.writerow(1, time.strftime("   %H:%M:%S   "))
 		if self.button_pressed():
-			self.myDisplay.writerow(2, 'Alarm:'+self.myAlarmTime.alarmtime_string()+'      ')
+			self.myDisplay.writerow(2, 'Alarm:'+self.myAlarm.alarmtime_string()+'      ')
 			self.start_screen_timer()
 			return(0)
 		if self.screen_timedout() == False:
-			self.myDisplay.writerow(2, 'Alarm:'+self.myAlarmTime.alarmtime_string()+'     ')
+			self.myDisplay.writerow(2, 'Alarm:'+self.myAlarm.alarmtime_string()+'     ')
 			return(0)
 		if self.alarm_running == False:
 			self.myDisplay.writerow(2, "                     ")		
@@ -119,10 +131,15 @@ class AlarmClock():
 			self.start_screen_timer()		# start one-shot timer
 			return(True)
 		if self.myGpio.button2() == 0:
-			self.myAlarmTime.increment_alarmhour()
+			self.start_screen_timer()		# start one-shot timer
 			return(True)
 		if self.myGpio.button3() == 0:
-			self.myAlarmTime.increment_alarmminute()
+			self.myAlarm.increment_alarmhour()
+			self.file_write_needed = True
+			return(True)
+		if self.myGpio.button4() == 0:
+			self.myAlarm.increment_alarmminute()
+			self.file_write_needed = True
 			return(True)
 		return(False)
 	
