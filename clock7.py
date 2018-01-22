@@ -29,10 +29,7 @@ else:
 	
 DISPLAY_CONNECTED = True
 LOGFILE = '/home/pi/master/log/clock7.log'
-TIMEOUT = 5		# seconds
-STEPTIME = 10
-# HOLDTIME = 2000					# replaced by alarmtime value, which is read from file
-HOLDTIME = 20					# replaced by alarmtime value, which is read from file
+SCREENTIMEOUT = 5		# seconds
 HOLDLEDPOSITION = 4
 FILEWRITEDELAY = 30
 
@@ -65,7 +62,6 @@ class AlarmClock():
 			logging.info('Zero IP address')
 		self.myGpio.sequenceleds()
 		self.myAlarm=alarmtime.AlarmTime()
-		holdtime = self.myAlarm.return_holdtime()
 		self.myDisplay = oled1.Oled()
 		self.myDisplay.writerow(1, 'Initialising')
 		self.myDisplay.writerow(2, 'Alarmtime starting')
@@ -91,9 +87,9 @@ class AlarmClock():
 	def next_led(self):
 		now = datetime.datetime.now()
 		if self.counter == HOLDLEDPOSITION:			# all on, so need to hold here
-			delta_time = HOLDTIME
+			delta_time = self.myAlarm.holdtime
 		else:
-			delta_time = STEPTIME
+			delta_time = self.myAlarm.steptime
 		if now - self.last_led_time > datetime.timedelta(seconds = delta_time):
 			self.myDisplay.writerow(2, 'Alarm started:'+str(self.counter))
 			self.last_led_time = now
@@ -150,7 +146,7 @@ class AlarmClock():
 	def screen_timedout(self):
 		# one shot timer. True if still running.
 		now = datetime.datetime.now()
-		if now - self.last_set > datetime.timedelta(seconds=TIMEOUT):
+		if now - self.last_set > datetime.timedelta(seconds=SCREENTIMEOUT):
 			return(True)
 		return(False)
 	

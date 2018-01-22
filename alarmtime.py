@@ -23,8 +23,8 @@ class AlarmTime():
 		self.alarmminute=20
 		self.wealarmhour=7
 		self.wealarmminute=00
-#		self.holdtime = 2000			# seconds
 		self.holdtime = 20			# seconds
+		self.steptime = 5			# seconds
 		self.read()
 		print 'Finished initialising'
 		
@@ -35,6 +35,7 @@ class AlarmTime():
 			line1=file.readline()
 			line2=file.readline()
 			self.holdtime = int(file.readline())
+			self.steptime = int(file.readline())
 			file.close()
 			a,b = line1.split(":")
 			self.alarmhour=int(a)
@@ -55,16 +56,14 @@ class AlarmTime():
 			file=open(ALARMTIMEFILE,'w')
 			file.write("{:02d}:{:02d}\n".format(self.alarmhour,self.alarmminute))
 			file.write("{:02d}:{:02d}\n".format(self.wealarmhour,self.wealarmminute))
-			file.write("{:04d}".format(self.holdtime))
+			file.write("{:04d}\n".format(self.holdtime))
+			file.write("{:03d}".format(self.steptime))
 			file.close()
 		except:
 			self.logger.warning("Failed to open alarmtime file for writing.")
 			return(1)
 		return(0)
-				
-	def return_holdtime(self):
-		return(self.holdtime)
-		
+						
 	def alarmtime_string(self):
 		return('{:02d}:{:02d}'.format(self.alarmhour, self.alarmminute))
 
