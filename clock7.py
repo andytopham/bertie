@@ -48,22 +48,21 @@ class AlarmClock():
 		elif board == 'bertie':
 			self.myGpio = gpio.gpio(board)
 
+		self.myDisplay = oled1.Oled()
+		self.myDisplay.writerow(1, 'Initialising   ')
 		self.start_screen_timer()
 		self.last_led_time = datetime.datetime.now()
 		
+		self.myDisplay.writerow(1, 'fetch ssid')
+		ssid = self.myGpio.get_ssid().split()
+		self.myDisplay.writerow(1,ssid[1][6:])
 		addr = '0'
-	#	addr = myGpio.get_ip_address()
-		if addr is not '0':
-			last_byte = addr.split('.')[3]
-			print 'IP: ',addr,last_byte
-			logging.info('IP address: '+addr)
-			self.myGpio.writeleds(last_byte)
-		else:
-			logging.info('Zero IP address')
+		addr = self.myGpio.get_ip_address()
+		self.myDisplay.writerow(2, addr[:-2])
+		logging.info('IP address: '+addr)
+		time.sleep(2)
 		self.myGpio.sequenceleds()
 		self.myAlarm=alarmtime.AlarmTime()
-		self.myDisplay = oled1.Oled()
-		self.myDisplay.writerow(1, 'Initialising')
 		self.myDisplay.writerow(2, 'Alarmtime starting')
 		self.file_write_needed = False
 #		self.myGpio.setupcallbacks()			# cannot get this to initialise right now?
@@ -110,7 +109,7 @@ class AlarmClock():
 		return(0)
 		
 	def update_display(self):
-		self.myDisplay.writerow(1, time.strftime("   %H:%M:%S   "))
+		self.myDisplay.writerow(1, time.strftime("   %H:%M:%S     "))
 		if self.button_pressed():
 			self.myDisplay.writerow(2, 'Alarm:'+self.myAlarm.alarmtime_string()+'      ')
 			self.start_screen_timer()

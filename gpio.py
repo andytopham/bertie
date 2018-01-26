@@ -7,6 +7,7 @@ import RPi.GPIO as GPIO
 import time
 import datetime
 import logging
+import subprocess
 WRITELEDSTATEENABLED = False
 LEDSTATEFILE = '/home/pi/master/log/ledstate.txt'
 LOGFILE = '/home/pi/master/log/gpio.log'
@@ -47,7 +48,18 @@ class gpio:
 		GPIO.setup(self.input, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 		self.logger.info('gpio initialised')
 
-	def get_ip_address(self, ifname = 'wlan0'):
+	def get_ssid(self):
+		ssid = subprocess.check_output("iwgetid")
+		print ssid
+		return(ssid)
+		
+	def get_ip_address(self):
+	# might need to strip off the last two chars, i.e. addr[:-2]
+		addr = subprocess.check_output(["hostname", "-I"])
+		print addr
+		return(addr)
+		
+	def _get_ip_address(self, ifname = 'wlan0'):
 		self.logger.info('get_ip_address')
 		try:
 			s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
